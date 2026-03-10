@@ -25,16 +25,20 @@ def generate_html(data):
         <title>医薬品調達情報 統合ダッシュボード</title>
         <style>
             :root {{
-                --primary: #1976D2;
-                --secondary: #00897B;
-                --tertiary: #5E35B1;
-                --bg: #f4f6f8;
+                --primary: #42A5F5; /* ALF-Web Blue */
+                --secondary: #66BB6A; /* MEDIPAL Green */
+                --tertiary: #4FC3F7; /* Collabo Water Blue */
+                --bg: #f8fafc;
                 --surface: #ffffff;
-                --text: #333333;
-                --text-secondary: #666666;
-                --border: #e0e0e0;
-                --danger: #d32f2f;
-                --warning: #f57c00;
+                --text: #1e293b;
+                --text-secondary: #64748b;
+                --border: #e2e8f0;
+                --danger: #ef4444;
+                --warning: #f59e0b;
+                --status-bg-danger: #fee2e2;
+                --status-text-danger: #b91c1c;
+                --status-bg-warning: #fef3c7;
+                --status-text-warning: #b45309;
             }}
             
             body {{
@@ -170,16 +174,19 @@ def generate_html(data):
             
             .status-badge {{
                 display: inline-block;
-                padding: 0.25rem 0.5rem;
-                border-radius: 4px;
-                font-size: 0.8rem;
+                padding: 0.2rem 0.6rem;
+                border-radius: 6px;
+                font-size: 0.75rem;
                 font-weight: 600;
-                background-color: var(--warning);
-                color: white;
+                background-color: var(--status-bg-warning);
+                color: var(--status-text-warning);
+                border: 1px solid rgba(180, 83, 9, 0.1);
             }}
             
             .status-danger {{
-                background-color: var(--danger);
+                background-color: var(--status-bg-danger);
+                color: var(--status-text-danger);
+                border: 1px solid rgba(185, 28, 28, 0.1);
             }}
             
             .maker-name {{
