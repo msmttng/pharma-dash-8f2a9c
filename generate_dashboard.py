@@ -107,8 +107,8 @@ def generate_html(data):
             }}
             
             .card-collabo {{ background-color: var(--tertiary); }}
-            .card-medipal {{ background-color: var(--secondary); }}
-            .card-alfweb {{ background-color: var(--primary); }}
+            .card-medipal {{ background-color: var(--primary); }}
+            .card-alfweb {{ background-color: var(--secondary); }}
             
             .item-count {{
                 background: rgba(255,255,255,0.2);
@@ -249,7 +249,7 @@ def generate_html(data):
                     全画面表示
                 </button>
             </div>
-            <div class="last-updated">最終更新: {{data.get("updated_at", "不明")}}</div>
+            <div class="last-updated">最終更新: {data.get("updated_at", "不明")}</div>
         </div>
         
         <div class="container">
@@ -261,31 +261,31 @@ def generate_html(data):
             <div class="card">
                 <div class="card-header card-collabo">
                     <span>Collabo Portal (調達中・受注辞退)</span>
-                    <span class="item-count">{{len(collabo_data)}}件</span>
+                    <span class="item-count">{len(collabo_data)}件</span>
                 </div>
                 <div class="table-container">
-                    {{"<table><thead><tr><th>品名/メーカー</th><th>状況/納期</th><th>数量</th></tr></thead><tbody>" if collabo_data else '<div class="empty-state">該当データなし</div>'}}
+                    {"<table><thead><tr><th>品名/メーカー</th><th>状況/納期</th><th>数量</th></tr></thead><tbody>" if collabo_data else '<div class="empty-state">該当データなし</div>'}
     """
     for item in collabo_data:
         status_class = "status-danger" if "辞退" in item.get("status", "") else ""
-        remarks_html = f'<div class="remarks">{{item.get("remarks")}}</div>' if item.get("remarks") else ""
-        date_html = f'<div style="font-size:0.8rem; margin-top:4px;">受付: {{item.get("date")}}</div>' if item.get("date") else ""
+        remarks_html = f'<div class="remarks">{item.get("remarks")}</div>' if item.get("remarks") else ""
+        date_html = f'<div style="font-size:0.8rem; margin-top:4px;">受付: {item.get("date")}</div>' if item.get("date") else ""
         
         html += f"""
                         <tr>
                             <td>
-                                <span class="maker-name">{{item.get("maker", "")}}</span>
-                                <div class="product-name">{{item.get("name", "")}}</div>
-                                <span class="product-code">JAN: {{item.get("code", "")}}</span>
-                                {{remarks_html}}
+                                <span class="maker-name">{item.get("maker", "")}</span>
+                                <div class="product-name">{item.get("name", "")}</div>
+                                <span class="product-code">JAN: {item.get("code", "")}</span>
+                                {remarks_html}
                             </td>
                             <td>
-                                <span class="status-badge {{status_class}}">{{item.get("status", "")}}</span>
-                                {{date_html}}
+                                <span class="status-badge {status_class}">{item.get("status", "")}</span>
+                                {date_html}
                             </td>
                             <td>
-                                <div>発注: <b>{{item.get("order_qty", "-")}}</b></div>
-                                <div>納品予定: <b>{{item.get("deliv_qty", "-")}}</b></div>
+                                <div>発注: <b>{item.get("order_qty", "-")}</b></div>
+                                <div>納品予定: <b>{item.get("deliv_qty", "-")}</b></div>
                             </td>
                         </tr>
         """
@@ -298,22 +298,22 @@ def generate_html(data):
             <div class="card">
                 <div class="card-header card-medipal">
                     <span>MEDIPAL (メーカー出荷調整品：入荷未定)</span>
-                    <span class="item-count">{{len(medipal_data)}}件</span>
+                    <span class="item-count">{len(medipal_data)}件</span>
                 </div>
                 <div class="table-container">
-                    {{"<table><thead><tr><th>品名/メーカー</th><th>状況・備考</th></tr></thead><tbody>" if medipal_data else '<div class="empty-state">該当データなし</div>'}}
+                    {"<table><thead><tr><th>品名/メーカー</th><th>状況・備考</th></tr></thead><tbody>" if medipal_data else '<div class="empty-state">該当データなし</div>'}
     """
     for item in medipal_data:
         html += f"""
                         <tr>
                             <td>
-                                <span class="maker-name">{{item.get("maker", "")}}</span>
-                                <div class="product-name">{{item.get("name", "")}}</div>
-                                <span class="product-code">{{item.get("code", "")}}</span>
+                                <span class="maker-name">{item.get("maker", "")}</span>
+                                <div class="product-name">{item.get("name", "")}</div>
+                                <span class="product-code">{item.get("code", "")}</span>
                             </td>
                             <td>
                                 <span class="status-badge status-danger">入荷未定</span>
-                                <div style="font-size:0.8rem; margin-top:4px;">{{item.get("remarks", "")}}</div>
+                                <div style="font-size:0.8rem; margin-top:4px;">{item.get("remarks", "")}</div>
                             </td>
                         </tr>
         """
@@ -326,25 +326,25 @@ def generate_html(data):
             <div class="card">
                 <div class="card-header card-alfweb">
                     <span>ALF-Web (出荷停止・入荷未定)</span>
-                    <span class="item-count">{{len(alfweb_data)}}件</span>
+                    <span class="item-count">{len(alfweb_data)}件</span>
                 </div>
                 <div class="table-container">
-                    {{"<table><thead><tr><th>品名/メーカー</th><th>状況</th><th>発注数</th></tr></thead><tbody>" if alfweb_data else '<div class="empty-state">該当データなし</div>'}}
+                    {"<table><thead><tr><th>品名/メーカー</th><th>状況</th><th>発注数</th></tr></thead><tbody>" if alfweb_data else '<div class="empty-state">該当データなし</div>'}
     """
     for item in alfweb_data:
-        date_html = f'<div style="font-size:0.8rem; margin-top:4px;">更新: {{item.get("date")}}</div>' if item.get("date") else ""
+        date_html = f'<div style="font-size:0.8rem; margin-top:4px;">更新: {item.get("date")}</div>' if item.get("date") else ""
         html += f"""
                         <tr>
                             <td>
-                                <span class="maker-name">{{item.get("maker", "")}}</span>
-                                <div class="product-name">{{item.get("name", "")}}</div>
+                                <span class="maker-name">{item.get("maker", "")}</span>
+                                <div class="product-name">{item.get("name", "")}</div>
                             </td>
                             <td>
-                                <span class="status-badge status-danger">{{item.get("status", "")}}</span>
-                                {{date_html}}
+                                <span class="status-badge status-danger">{item.get("status", "")}</span>
+                                {date_html}
                             </td>
                             <td>
-                                <b>{{item.get("order_qty", "-")}}</b>
+                                <b>{item.get("order_qty", "-")}</b>
                             </td>
                         </tr>
         """
