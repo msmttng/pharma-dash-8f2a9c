@@ -74,12 +74,12 @@ def generate_html(data):
             }}
             
             .container {{
-                max-width: 1400px;
-                margin: 2rem auto;
+                max-width: 100%;
+                margin: 1rem auto;
                 padding: 0 1rem;
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-                gap: 1.5rem;
+                grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+                gap: 1rem;
             }}
             
             .card {{
@@ -89,32 +89,48 @@ def generate_html(data):
                 overflow: hidden;
                 display: flex;
                 flex-direction: column;
+                height: 100%;
             }}
             
-            .card-header {{
-                padding: 1rem 1.5rem;
+            /* Vertical monitor optimization */
+            @media (min-aspect-ratio: 1/1) {{
+                .table-container {{
+                    max-height: 60vh;
+                }}
+            }}
+            
+            @media (max-aspect-ratio: 1/1) {{
+                .container {{
+                    grid-template-columns: 1fr;
+                }}
+                .table-container {{
+                    max-height: none; /* Let it expand on vertical monitors */
+                }}
+            }}
+
+            .fullscreen-btn {{
+                background-color: var(--primary);
                 color: white;
+                border: none;
+                padding: 0.5rem 1rem;
+                border-radius: 4px;
+                cursor: pointer;
                 font-weight: 600;
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-            }}
-            
-            .card-collabo {{ background-color: var(--tertiary); }}
-            .card-medipal {{ background-color: var(--primary); }}
-            .card-alfweb {{ background-color: var(--secondary); }}
-            
-            .item-count {{
-                background: rgba(255,255,255,0.2);
-                padding: 0.2rem 0.6rem;
-                border-radius: 12px;
                 font-size: 0.85rem;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                transition: background-color 0.2s;
             }}
             
+            .fullscreen-btn:hover {{
+                background-color: #1565C0;
+            }}
+
             .table-container {{
                 overflow-x: auto;
                 flex-grow: 1;
-                max-height: 600px;
+                overflow-y: auto;
             }}
             
             table {{
@@ -196,11 +212,30 @@ def generate_html(data):
                 font-style: italic;
             }}
         </style>
+        <script>
+            function toggleFullScreen() {{
+                if (!document.fullscreenElement) {{
+                    document.documentElement.requestFullscreen().catch(err => {{
+                        alert(`Error attempting to enable full-screen mode: ${{err.message}} (${{err.name}})`);
+                    }});
+                }} else {{
+                    if (document.exitFullscreen) {{
+                        document.exitFullscreen();
+                    }}
+                }}
+            }}
+        </script>
     </head>
     <body>
         <div class="header">
-            <h1>💊 医薬品調達情報 統合ダッシュボード</h1>
-            <div class="last-updated">最終更新: {data.get("updated_at", "不明")}</div>
+            <div style="display: flex; align-items: center; gap: 1.5rem;">
+                <h1>💊 医薬品調達情報 統合ダッシュボード</h1>
+                <button class="fullscreen-btn" onclick="toggleFullScreen()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+                    全画面表示
+                </button>
+            </div>
+            <div class="last-updated">最終更新: {{data.get("updated_at", "不明")}}</div>
         </div>
         
         <div class="container">
