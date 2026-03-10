@@ -22,12 +22,10 @@ def generate_html(data):
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="robots" content="noindex, nofollow"> <!-- Prevent Search Engine Indexing -->
-        <title>医薬品調達情報 統合ダッシュボード</title>
-        <style>
-            :root {{
-                --primary: #42A5F5; /* ALF-Web Blue */
-                --secondary: #2aa12f; /* MEDIPAL Green */
-                --tertiary: #1d6fe0; /* Collabo Water Blue */
+        <title>医薬品調達情報 統合ダッシュ�            :root {{
+                --medipal-green: #2E7D32; /* Medipal Dark Green */
+                --alfweb-blue: #1976D2; /* ALF-Web Blue */
+                --tertiary: #4FC3F7; /* Collabo Water Blue */
                 --bg: #f8fafc;
                 --surface: #ffffff;
                 --text: #1e293b;
@@ -107,8 +105,8 @@ def generate_html(data):
             }}
             
             .card-collabo {{ background-color: var(--tertiary); }}
-            .card-medipal {{ background-color: var(--primary); }}
-            .card-alfweb {{ background-color: var(--secondary); }}
+            .card-medipal {{ background-color: var(--medipal-green); }}
+            .card-alfweb {{ background-color: var(--alfweb-blue); }}
             
             .item-count {{
                 background: rgba(255,255,255,0.2);
@@ -126,7 +124,7 @@ def generate_html(data):
             }}
 
             .fullscreen-btn {{
-                background-color: var(--primary);
+                background-color: var(--alfweb-blue);
                 color: white;
                 border: none;
                 padding: 0.4rem 0.8rem;
@@ -291,7 +289,7 @@ def generate_html(data):
         """
     if collabo_data: html += "</tbody></table>"
     html += "</div></div>"
-
+ 
     # 2. Medipal
     medipal_data = data.get("medipal", [])
     html += f"""
@@ -309,7 +307,7 @@ def generate_html(data):
                             <td>
                                 <span class="maker-name">{item.get("maker", "")}</span>
                                 <div class="product-name">{item.get("name", "")}</div>
-                                <span class="product-code">{item.get("code", "")}</span>
+                                <span class="product-code">JAN: {item.get("code", "")}</span>
                             </td>
                             <td>
                                 <span class="status-badge status-danger">入荷未定</span>
@@ -319,7 +317,7 @@ def generate_html(data):
         """
     if medipal_data: html += "</tbody></table>"
     html += "</div></div>"
-
+ 
     # 3. ALF-Web
     alfweb_data = data.get("alfweb", [])
     html += f"""
@@ -342,6 +340,14 @@ def generate_html(data):
                             <td>
                                 <span class="status-badge status-danger">{item.get("status", "")}</span>
                                 {date_html}
+                            </td>
+                            <td>
+                                <b>{item.get("order_qty", "-")}</b>
+                            </td>
+                        </tr>
+        """
+    if alfweb_data: html += "</tbody></table>"
+                             {date_html}
                             </td>
                             <td>
                                 <b>{item.get("order_qty", "-")}</b>
