@@ -11,44 +11,47 @@ DEBUG_DIR = "debug"
 os.makedirs(DEBUG_DIR, exist_ok=True)
 
 async def fetch_collabo(page):
-    print("Fetching Collaboportal...")
+    print("\n--- Starting Collaboportal Scrape ---")
     data = []
     try:
-        await page.goto("https://szgp-app1.collaboportal.com/frontend#/NoukiSearch", wait_until="networkidle")
+        url = "https://szgp-app1.collaboportal.com/frontend#/NoukiSearch"
+        print(f"Navigating to: {url}")
+        await page.goto(url, wait_until="networkidle", timeout=60000)
         await page.wait_for_timeout(3000)
+        print(f"Current URL: {page.url}")
         
-        # Check if login is required (if we are on login screen)
         if "login" in page.url or await page.locator('input[type="password"]').count() > 0:
-            print("Logging into Collaboportal...")
-            collabo_id = os.environ.get("COLLABO_ID", "6330967")
-            collabo_pw = os.environ.get("COLLABO_PW", "m1m1m1m1")
+            print("Login required for Collaboportal. Attempting login...")
+            collabo_id = os.environ.get("COLLABO_ID")
+            collabo_pw = os.environ.get("COLLABO_PW")
+            if not collabo_id or not collabo_pw:
+                print("Error: COLLABO_ID or COLLABO_PW not set in environment.")
+                return []
+                
             await page.fill('input[type="text"], input[placeholder="ID"]', collabo_id)
             await page.fill('input[type="password"]', collabo_pw)
-            
-            # Try to find and click the login button
             await page.click('button:has-text("ログイン"), .el-button--primary')
-            await page.wait_for_timeout(5000)
+            print("Login button clicked. Waiting for redirection...")
+            await page.wait_for_timeout(7000)
+            print(f"URL after login: {page.url}")
             
-        await page.goto("https://szgp-app1.collaboportal.com/frontend#/NoukiSearch", wait_until="networkidle")
-        await page.wait_for_timeout(5000)
-        await page.screenshot(path=f"{DEBUG_DIR}/collabo.png")
+            # Re-navigate if needed
+            if "NoukiSearch" not in page.url:
+                print("Redirecting to NoukiSearch manually...")
+                await page.goto(url, wait_until="networkidle")
         
-        # We need to extract the table data
+        await page.wait_for_timeout(5000)
+        print("Scanned page for data...")
         html = await page.content()
-        with open(f"{DEBUG_DIR}/collabo.html", "w", encoding="utf-8") as f:
-            f.write(html)
-            
         soup = BeautifulSoup(html, "html.parser")
         
-        # Collabo uses multiple nested loops, elements are in td > span
         rows = soup.select(".nouki_table tbody tr.management_content_base, .nouki_table tbody tr.management_content_stock_out")
+        print(f"Found {len(rows)} rows in Collaboportal table.")
             
         for row in rows:
             cols = row.select("td")
             if len(cols) >= 11:
-                # Use span text inside td
                 texts = [c.text.strip() for c in cols]
-                
                 item = {
                     "date": texts[1],
                     "code": texts[3].replace(" ", ""),
@@ -60,54 +63,50 @@ async def fetch_collabo(page):
                     "status": texts[9],
                     "remarks": texts[10] if len(texts) > 10 else ""
                 }
-                # Filter specific statuses
-                if "調達中" in item["status"] or "受注辞退" in item["status"] or "保留" in item["status"]:
+                if any(x in item["status"] for x in ["調達中", "受注辞退", "保留"]):
                     data.append(item)
+                    
+        print(f"Extraction successful: {len(data)} items found.")
     except Exception as e:
         print(f"Collabo Error: {e}")
     return data
 
 async def fetch_medipal(page):
-    print("Fetching Medipal...")
+    print("\n--- Starting Medipal Scrape ---")
     data = []
     try:
-        await page.goto("https://www.medipal-app.com/App/servlet/InvokerServlet", wait_until="networkidle")
-        await page.screenshot(path=f"{DEBUG_DIR}/medipal_login.png")
+        url = "https://www.medipal-app.com/App/servlet/InvokerServlet"
+        print(f"Navigating to: {url}")
+        await page.goto(url, wait_until="networkidle", timeout=60000)
         
-        # Login
-        # Medipal form uses placeholders 'ID' and 'パスワード'
-        medipal_id = os.environ.get("MEDIPAL_ID", "000877242")
-        medipal_pw = os.environ.get("MEDIPAL_PW", "m1m1m1m1")
+        medipal_id = os.environ.get("MEDIPAL_ID")
+        medipal_pw = os.environ.get("MEDIPAL_PW")
+        if not medipal_id:
+            print("Error: MEDIPAL_ID not set.")
+            return []
+
+        print("Filling login form...")
         await page.fill('input[placeholder="ID"], input[type="text"]', medipal_id)
         await page.fill('input[placeholder="パスワード"], input[type="password"]', medipal_pw)
-        await page.click('img[src*="login"], button:has-text("ログイン"), input[type="button"][value="ログイン"], .btnLogin')
+        await page.click('img[src*="login"], button:has-text("ログイン"), .btnLogin')
         
-        await page.wait_for_timeout(5000)
-        # Select "欠品のみ" in filter if possible
-        try:
-            # We don't know the exact selector, so we will just dump HTML and see
-            await page.select_option('select', label='欠品のみ')
-            await page.wait_for_timeout(2000)
-        except Exception:
-            pass
-            
-        await page.screenshot(path=f"{DEBUG_DIR}/medipal_data.png")
+        print("Waiting for Medipal dashboard...")
+        await page.wait_for_timeout(8000)
+        print(f"Current URL: {page.url}")
+        
         html = await page.content()
-        with open(f"{DEBUG_DIR}/medipal.html", "w", encoding="utf-8") as f:
-            f.write(html)
-            
         soup = BeautifulSoup(html, "html.parser")
-        # "section#cFooter" and Target Status Identifier: links (icons) with the class `.MstKpnErr`
+        
+        # Look for the error indicators
         container = soup.select_one("section#cFooter") or soup
-        # We need to extract the data rows. Based on subagent, they are div elements.
-        for err_icon in container.select(".MstKpnErr"):
-            # Find the parent row
+        items_raw = container.select(".MstKpnErr")
+        print(f"Found {len(items_raw)} items with error indicators in Medipal.")
+        
+        for err_icon in items_raw:
             row = err_icon.find_parent("div", class_="row") or err_icon.find_parent("tr") or err_icon.find_parent("div")
             if row:
                 name_el = row.select_one("[id^='hnmy']")
                 name = name_el.text.strip() if name_el else "Unknown"
-                
-                # Try to extract other fields by their relative positions or classes
                 texts = [t.strip() for t in row.stripped_strings]
                 item = {
                     "code": texts[1] if len(texts) > 1 else "",
@@ -117,60 +116,58 @@ async def fetch_medipal(page):
                 }
                 if item not in data:
                     data.append(item)
-                    
+        print(f"Extraction successful: {len(data)} items found.")
     except Exception as e:
         print(f"Medipal Error: {e}")
     return data
 
 async def fetch_alfweb(page):
-    print("Fetching ALF-Web...")
+    print("\n--- Starting ALF-Web Scrape ---")
     data = []
     try:
-        await page.goto("https://www.alf-web.com/portal2/portalLogin/select.do", wait_until="networkidle")
-        await page.wait_for_timeout(2000)
+        url = "https://www.alf-web.com/portal2/portalLogin/select.do"
+        print(f"Navigating to: {url}")
+        await page.goto(url, wait_until="networkidle", timeout=60000)
         
-        # Sometimes there's a button to go to login form
-        try:
-            await page.click("text=alf-web ログイン画面へ", timeout=3000)
-        except:
-            pass
+        # Check if we need to click to login form
+        login_btn = await page.locator("text=alf-web ログイン画面へ").count()
+        if login_btn > 0:
+            print("Clicking 'Go to login form' button...")
+            await page.click("text=alf-web ログイン画面へ")
+            await page.wait_for_timeout(2000)
+        
+        alfweb_id = os.environ.get("ALFWEB_ID")
+        alfweb_pw = os.environ.get("ALFWEB_PW")
+        if not alfweb_id:
+            print("Error: ALFWEB_ID not set.")
+            return []
             
-        await page.screenshot(path=f"{DEBUG_DIR}/alfweb_login.png")
-        
-        # Login Form Fields
-        alfweb_id = os.environ.get("ALFWEB_ID", "100104554")
-        alfweb_pw = os.environ.get("ALFWEB_PW", "m1m1m1m1")
+        print("Filling ALF-Web login form...")
         await page.fill("input[name='loginId'], input[type='text'], #loginId", alfweb_id)
         await page.fill("input[name='password'], input[type='password'], #password", alfweb_pw)
         
-        # Wait for any navigation
         async with page.expect_navigation(wait_until="networkidle", timeout=30000):
             await page.click("input[type='image'][src*='login'], .loginBtn, a:has-text('ログイン')")
         
+        print("Login complete. Proceeding to delivery info page...")
         await page.wait_for_timeout(5000)
         await page.goto("https://www.alf-web.com/portal2/contents/noDeliveryContentsDetailAction_init.do", wait_until="networkidle")
-        await page.wait_for_timeout(3000)
+        await page.wait_for_timeout(5000)
+        print(f"Current URL: {page.url}")
         
-        await page.screenshot(path=f"{DEBUG_DIR}/alfweb_data.png")
         html = await page.content()
-        with open(f"{DEBUG_DIR}/alfweb.html", "w", encoding="utf-8") as f:
-            f.write(html)
-            
         soup = BeautifulSoup(html, "html.parser")
-        table = soup.select_one(".pageDelivList tbody")
-        rows = table.select("tr") if table else soup.select(".pageDelivList tr")
+        table = soup.select_one(".pageDelivList tbody") or soup.select_one(".pageDelivList")
+        rows = table.select("tr") if table else []
+        print(f"Found {len(rows)} rows in ALF-Web table.")
         
         for row in rows:
             cols = row.select("td")
             if len(cols) >= 6:
                 deliv_date_html = str(cols[5])
-                # Check for the info icon which indicates supply issues
                 if "出荷調整" in deliv_date_html or "icon" in deliv_date_html or "i" in cols[5].text or "pageDelivList__ic_i" in deliv_date_html:
-                    # Clean up the name string which might have inline elements
                     name_el = cols[2]
-                    # Get only direct text nodes, or the first span text
                     name_text = name_el.select_one("span").contents[0].strip() if name_el.select_one("span") else name_el.text.strip().split('\n')[0]
-                    
                     item = {
                         "date": cols[0].text.strip(),
                         "maker": cols[1].text.strip(),
@@ -179,12 +176,14 @@ async def fetch_alfweb(page):
                         "status": "出荷停止・入荷未定",
                     }
                     data.append(item)
+        print(f"Extraction successful: {len(data)} items found.")
     except Exception as e:
         print(f"ALF-Web Error: {e}")
     return data
 
 async def main():
     async with async_playwright() as p:
+        print(f"--- Starting Browser (Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}) ---")
         browser = await p.chromium.launch(headless=True)
         context = await browser.new_context(
             viewport={'width': 1920, 'height': 1080},
@@ -202,10 +201,14 @@ async def main():
             "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
         
+        # If all data lists are empty, maybe log a warning
+        if not any(result[k] for k in ["collabo", "medipal", "alfweb"] if isinstance(result[k], list)):
+            print("WARNING: No data extracted from any site. Checker your credentials or network status.")
+        
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             json.dump(result, f, ensure_ascii=False, indent=2)
             
-        print("Data extraction complete.")
+        print(f"Data extraction process finished. Total items in JSON: {len(collabo_data) + len(medipal_data) + len(alfweb_data)}")
         await browser.close()
 
 if __name__ == "__main__":
