@@ -26,8 +26,8 @@ def generate_html(data):
         <style>
             :root {{
                 --primary: #42A5F5; /* ALF-Web Blue */
-                --secondary: #66BB6A; /* MEDIPAL Green */
-                --tertiary: #4FC3F7; /* Collabo Water Blue */
+                --secondary: #2aa12f; /* MEDIPAL Green */
+                --tertiary: #1d6fe0; /* Collabo Water Blue */
                 --bg: #f8fafc;
                 --surface: #ffffff;
                 --text: #1e293b;
