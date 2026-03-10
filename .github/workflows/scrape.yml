@@ -27,16 +27,11 @@ jobs:
           playwright install chromium
       - name: Run Scraper
         env:
-          COLLABO_ID: ${{ secrets.COLLABO_ID }}
-          COLLABO_PW: ${{ secrets.COLLABO_PW }}
-          MEDIPAL_ID: ${{ secrets.MEDIPAL_ID }}
-          MEDIPAL_PW: ${{ secrets.MEDIPAL_PW }}
-          ALFWEB_ID: ${{ secrets.ALFWEB_ID }}
-          ALFWEB_PW: ${{ secrets.ALFWEB_PW }}
+          PHARMA_CONFIG: ${{ secrets.PHARMA_CONFIG }}
         run: python fetch_data.py
       - name: Generate Dashboard HTML
         env:
-          DASHBOARD_PASSWORD: ${{ secrets.DASHBOARD_PASSWORD }}
+          PHARMA_CONFIG: ${{ secrets.PHARMA_CONFIG }}
         run: python generate_dashboard.py
       - name: Setup Pages
         uses: actions/configure-pages@v4
