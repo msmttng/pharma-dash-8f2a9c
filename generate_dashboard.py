@@ -3,7 +3,7 @@ import json
 import os
 
 INPUT_FILE = "pharma_data.json"
-OUTPUT_FILE = "dashboard.html"
+OUTPUT_FILE = "index.html"
 
 def generate_html(data):
     # Retrieve password from env var or use a default one for local testing
