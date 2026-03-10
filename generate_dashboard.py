@@ -263,9 +263,9 @@ def generate_html(data):
     if collabo_data:
         html += "<table><thead><tr><th>品名/メーカー</th><th>状況/納期</th><th>数量</th></tr></thead><tbody>"
         for item in collabo_data:
-            remarks_html = f'<div class="remarks">{{item.get("remarks", "")}}</div>' if item.get("remarks") else ""
+            remarks_html = f'<div class="remarks">{item.get("remarks", "")}</div>' if item.get("remarks") else ""
             status_class = "status-danger" if "辞退" in item.get("status", "") else ""
-            date_html = f'<div style="font-size:0.8rem; margin-top:4px;">受付: {{item.get("date")}}</div>' if item.get("date") else ""
+            date_html = f'<div style="font-size:0.8rem; margin-top:4px;">受付: {item.get("date")}</div>' if item.get("date") else ""
             
             html += f"""
                         <tr>
@@ -305,9 +305,9 @@ def generate_html(data):
             html += f"""
                         <tr>
                             <td>
-                                <span class="maker-name">{item.get("code", "")}</span>
+                                <span class="maker-name">{item.get("maker", "")}</span>
                                 <div class="product-name">{item.get("name", "")}</div>
-                                <span class="product-code">{item.get("maker", "")}</span>
+                                <span class="product-code">{item.get("code", "")}</span>
                             </td>
                             <td>
                                 <span class="status-badge status-danger">入荷未定</span>
@@ -332,7 +332,7 @@ def generate_html(data):
     if alfweb_data:
         html += "<table><thead><tr><th>品名/メーカー</th><th>状況・備考</th></tr></thead><tbody>"
         for item in alfweb_data:
-            date_html = f'<div style="font-size:0.8rem; margin-top:4px;">更新: {{item.get("date")}}</div>' if item.get("date") else ""
+            date_html = f'<div style="font-size:0.8rem; margin-top:4px;">更新: {item.get("date")}</div>' if item.get("date") else ""
             html += f"""
                         <tr>
                             <td>
