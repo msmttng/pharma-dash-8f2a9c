@@ -1,225 +1,378 @@
-import asyncio
+from datetime import datetime
 import json
 import os
-from datetime import datetime
-from playwright.async_api import async_playwright
-from bs4 import BeautifulSoup
 
-OUTPUT_FILE = "pharma_data.json"
-DEBUG_DIR = "debug"
+INPUT_FILE = "pharma_data.json"
+OUTPUT_FILE = "index.html"
 
-os.makedirs(DEBUG_DIR, exist_ok=True)
-
-# Try to load secrets from a single JSON string environment variable (for easier setup)
-config_json = os.environ.get("PHARMA_CONFIG")
-if config_json:
-    try:
-        ext_config = json.loads(config_json)
-        for k, v in ext_config.items():
-            os.environ[k] = str(v)
-    except Exception as e:
-        print(f"Warning: Failed to parse PHARMA_CONFIG JSON: {e}")
-
-async def fetch_collabo(page):
-    print("\n--- Starting Collaboportal Scrape ---")
-    data = []
-    try:
-        url = "https://szgp-app1.collaboportal.com/frontend#/NoukiSearch"
-        print(f"Navigating to: {url}")
-        await page.goto(url, wait_until="networkidle", timeout=60000)
-        await page.wait_for_timeout(3000)
-        print(f"Current URL: {page.url}")
-        
-        if "login" in page.url or await page.locator('input[type="password"]').count() > 0:
-            print("Login required for Collaboportal. Attempting login...")
-            collabo_id = os.environ.get("COLLABO_ID")
-            collabo_pw = os.environ.get("COLLABO_PW")
-            if not collabo_id or not collabo_pw:
-                print("Error: COLLABO_ID or COLLABO_PW not set in environment.")
-                return []
-                
-            await page.fill('input[type="text"], input[placeholder="ID"]', collabo_id)
-            await page.fill('input[type="password"]', collabo_pw)
-            await page.click('button:has-text("ログイン"), .el-button--primary')
-            print("Login button clicked. Waiting for redirection...")
-            await page.wait_for_timeout(7000)
-            print(f"URL after login: {page.url}")
+def generate_html(data):
+    # Try to load secrets from JSON string first
+    config_json = os.environ.get("PHARMA_CONFIG")
+    if config_json:
+        try:
+            ext_config = json.loads(config_json)
+            for k, v in ext_config.items():
+                os.environ[k] = str(v)
+        except Exception:
+            pass
+    html = f"""
+    <!DOCTYPE html>
+    <html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="robots" content="noindex, nofollow"> <!-- Prevent Search Engine Indexing -->
+        <title>医薬品調達情報 統合ダッシュ             :root {{
+                --medipal-green: #2E7D32; /* Medipal Dark Green */
+                --alfweb-blue: #1976D2; /* ALF-Web Blue */
+                --tertiary: #4FC3F7; /* Collabo Water Blue */
+                --bg: #f8fafc;
+                --surface: #ffffff;
+                --text: #1e293b;
+                --text-secondary: #64748b;
+                --border: #e2e8f0;
+                --danger: #ef4444;
+                --warning: #f59e0b;
+                --status-bg-danger: #fee2e2;
+                --status-text-danger: #b91c1c;
+                --status-bg-warning: #fef3c7;
+                --status-text-warning: #b45309;
+            }}
             
-            # Re-navigate if needed
-            if "NoukiSearch" not in page.url:
-                print("Redirecting to NoukiSearch manually...")
-                await page.goto(url, wait_until="networkidle")
-        
-        await page.wait_for_timeout(5000)
-        print("Scanned page for data...")
-        html = await page.content()
-        soup = BeautifulSoup(html, "html.parser")
-        
-        rows = soup.select(".nouki_table tbody tr.management_content_base, .nouki_table tbody tr.management_content_stock_out")
-        print(f"Found {len(rows)} rows in Collaboportal table.")
+            body {{
+                font-family: 'Segoe UI', 'Noto Sans JP', sans-serif;
+                background-color: var(--bg);
+                color: var(--text);
+                margin: 0;
+                padding: 0;
+                line-height: 1.6;
+            }}
             
-        for row in rows:
-            cols = row.select("td")
-            if len(cols) >= 11:
-                texts = [c.text.strip() for c in cols]
-                item = {
-                    "date": texts[1],
-                    "code": texts[3].replace(" ", ""),
-                    "maker": texts[4].replace(" ", ""),
-                    "name": texts[5],
-                    "order_qty": texts[6],
-                    "deliv_qty": texts[7],
-                    "deliv_date": texts[8],
-                    "status": texts[9],
-                    "remarks": texts[10] if len(texts) > 10 else ""
-                }
-                if any(x in item["status"] for x in ["調達中", "受注辞退", "保留"]):
-                    data.append(item)
-                    
-        print(f"Extraction successful: {len(data)} items found.")
-    except Exception as e:
-        print(f"Collabo Error: {e}")
-    return data
-
-async def fetch_medipal(page):
-    print("\n--- Starting Medipal Scrape ---")
-    data = []
-    try:
-        url = "https://www.medipal-app.com/App/servlet/InvokerServlet"
-        print(f"Navigating to: {url}")
-        await page.goto(url, wait_until="networkidle", timeout=60000)
-        
-        medipal_id = os.environ.get("MEDIPAL_ID")
-        medipal_pw = os.environ.get("MEDIPAL_PW")
-        if not medipal_id:
-            print("Error: MEDIPAL_ID not set.")
-            return []
-
-        print("Filling login form...")
-        await page.fill('input[placeholder="ID"], input[type="text"]', medipal_id)
-        await page.fill('input[placeholder="パスワード"], input[type="password"]', medipal_pw)
-        await page.click('img[src*="login"], button:has-text("ログイン"), .btnLogin')
-        
-        print("Waiting for Medipal dashboard...")
-        await page.wait_for_timeout(8000)
-        print(f"Current URL: {page.url}")
-        
-        html = await page.content()
-        soup = BeautifulSoup(html, "html.parser")
-        
-        # Look for the error indicators
-        container = soup.select_one("section#cFooter") or soup
-        items_raw = container.select(".MstKpnErr")
-        print(f"Found {len(items_raw)} items with error indicators in Medipal.")
-        
-        for err_icon in items_raw:
-            row = err_icon.find_parent("div", class_="row") or err_icon.find_parent("tr") or err_icon.find_parent("div")
-            if row:
-                name_el = row.select_one("[id^='hnmy']")
-                name = name_el.text.strip() if name_el else "Unknown"
-                
-                # More robust extraction
-                texts = [t.strip() for t in row.stripped_strings if t.strip()]
-                
-                code = ""
-                maker = ""
-                
-                # Usually JAN codes are 13 or 14 digits.
-                # Let's find which text looks like a code and which looks like a maker.
-                for t in texts:
-                    if t.isdigit() and len(t) >= 10:
-                        code = t
-                    elif any(m in t for m in ["製薬", "薬品", "工業", "ファーマ", "ラボ", "ケミカル"]):
-                        maker = t
-                
-                # Fallback if logic above fails
-                if not code and len(texts) > 1: code = texts[0]
-                if not maker and len(texts) > 2: maker = texts[1]
-                
-                item = {
-                    "code": code,
-                    "maker": maker,
-                    "name": name,
-                    "remarks": "メーカー出荷調整品：入荷未定"
-                }
-                if item not in data:
-                    data.append(item)
-        print(f"Extraction successful: {len(data)} items found.")
-    except Exception as e:
-        print(f"Medipal Error: {e}")
-    return data
-
-async def fetch_alfweb(page):
-    print("\n--- Starting ALF-Web Scrape ---")
-    data = []
-    try:
-        url = "https://www.alf-web.com/portal2/portalLogin/select.do"
-        print(f"Navigating to: {url}")
-        await page.goto(url, wait_until="networkidle", timeout=60000)
-        
-        # Check if we need to click to login form
-        login_btn = await page.locator("text=alf-web ログイン画面へ").count()
-        if login_btn > 0:
-            print("Clicking 'Go to login form' button...")
-            await page.click("text=alf-web ログイン画面へ")
-            await page.wait_for_timeout(2000)
-        
-        alfweb_id = os.environ.get("ALFWEB_ID")
-        alfweb_pw = os.environ.get("ALFWEB_PW")
-        if not alfweb_id:
-            print("Error: ALFWEB_ID not set.")
-            return []
+            .header {{
+                background-color: var(--surface);
+                padding: 1rem 1.5rem;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                position: sticky;
+                top: 0;
+                z-index: 100;
+            }}
             
-        print("Filling ALF-Web login form...")
-        await page.fill("input[name='loginId'], input[type='text'], #loginId", alfweb_id)
-        await page.fill("input[name='password'], input[type='password'], #password", alfweb_pw)
-        
-        async with page.expect_navigation(wait_until="networkidle", timeout=30000):
-            await page.click("input[type='image'][src*='login'], .loginBtn, a:has-text('ログイン')")
-        
-        print("Login complete. Proceeding to delivery info page...")
-        await page.wait_for_timeout(5000)
-        await page.goto("https://www.alf-web.com/portal2/contents/noDeliveryContentsDetailAction_init.do", wait_until="networkidle")
-        await page.wait_for_timeout(5000)
-        print(f"Current URL: {page.url}")
-        
-        html = await page.content()
-        soup = BeautifulSoup(html, "html.parser")
-        table = soup.select_one(".pageDelivList tbody") or soup.select_one(".pageDelivList")
-        rows = table.select("tr") if table else []
-        print(f"Found {len(rows)} rows in ALF-Web table.")
-        
-        for row in rows:
-            cols = row.select("td")
-            if len(cols) >= 6:
-                deliv_date_html = str(cols[5])
-                if "出荷調整" in deliv_date_html or "icon" in deliv_date_html or "i" in cols[5].text or "pageDelivList__ic_i" in deliv_date_html:
-                    name_el = cols[2]
-                    name_text = name_el.select_one("span").contents[0].strip() if name_el.select_one("span") else name_el.text.strip().split('\n')[0]
-                    item = {
-                        "date": cols[0].text.strip(),
-                        "maker": cols[1].text.strip(),
-                        "name": name_text,
-                        "order_qty": cols[3].text.strip(),
-                        "status": "出荷停止・入荷未定",
-                    }
-                    data.append(item)
-        print(f"Extraction successful: {len(data)} items found.")
-    except Exception as e:
-        print(f"ALF-Web Error: {e}")
-    return data
+            .header h1 {{
+                margin: 0;
+                font-size: 1.2rem;
+                color: var(--text);
+                font-weight: 600;
+            }}
+            
+            .last-updated {{
+                font-size: 0.8rem;
+                color: var(--text-secondary);
+                background-color: #f0f0f0;
+                padding: 0.3rem 0.6rem;
+                border-radius: 20px;
+            }}
+            
+            .container {{
+                max-width: 100%;
+                margin: 0.5rem auto;
+                padding: 0 0.5rem;
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 0.75rem;
+            }}
+            
+            .card {{
+                background: var(--surface);
+                border-radius: 8px;
+                box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
+                height: calc(100vh - 100px); /* Fill most of the screen height */
+            }}
+            
+            .card-header {{
+                padding: 0.75rem 1rem;
+                color: white;
+                font-weight: 600;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                font-size: 0.9rem;
+            }}
+            
+            .card-collabo {{ background-color: var(--tertiary); }}
+            .card-medipal {{ background-color: var(--medipal-green); }}
+            .card-alfweb {{ background-color: var(--alfweb-blue); }}
+            
+            .item-count {{
+                background: rgba(255,255,255,0.2);
+                padding: 0.1rem 0.5rem;
+                border-radius: 12px;
+                font-size: 0.8rem;
+            }}
+            
+            /* High density for vertical monitors */
+            .table-container {{
+                overflow-x: auto;
+                flex-grow: 1;
+                overflow-y: auto;
+                max-height: none;
+            }}
 
-async def main():
-    async with async_playwright() as p:
-        print(f"--- Starting Browser (Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}) ---")
-        browser = await p.chromium.launch(headless=True)
-        context = await browser.new_context(
-            viewport={'width': 1920, 'height': 1080},
-            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-        )
+            .fullscreen-btn {{
+                background-color: var(--alfweb-blue);
+                color: white;
+                border: none;
+                padding: 0.4rem 0.8rem;
+                border-radius: 4px;
+                cursor: pointer;
+                font-weight: 600;
+                font-size: 0.8rem;
+                display: flex;
+                align-items: center;
+                gap: 0.4rem;
+                transition: background-color 0.2s;
+            }}
+            
+            .fullscreen-btn:hover {{
+                background-color: #1565C0;
+            }}
+            
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+                text-align: left;
+                font-size: 0.9rem;
+            }}
+            
+            th {{
+                background-color: #f8f9fa;
+                padding: 0.8rem 1rem;
+                font-weight: 600;
+                color: var(--text-secondary);
+                border-bottom: 2px solid var(--border);
+                position: sticky;
+                top: 0;
+                z-index: 10;
+            }}
+            
+            td {{
+                padding: 0.8rem 1rem;
+                border-bottom: 1px solid var(--border);
+                vertical-align: top;
+            }}
+            
+            tr:hover td {{
+                background-color: #f5f8ff;
+            }}
+            
+            .status-badge {{
+                display: inline-block;
+                padding: 0.2rem 0.6rem;
+                border-radius: 6px;
+                font-size: 0.75rem;
+                font-weight: 600;
+                background-color: var(--status-bg-warning);
+                color: var(--status-text-warning);
+                border: 1px solid rgba(180, 83, 9, 0.1);
+            }}
+            
+            .status-danger {{
+                background-color: var(--status-bg-danger);
+                color: var(--status-text-danger);
+                border: 1px solid rgba(185, 28, 28, 0.1);
+            }}
+            
+            .maker-name {{
+                font-size: 0.8rem;
+                color: var(--text-secondary);
+                display: block;
+                margin-bottom: 0.2rem;
+            }}
+            
+            .product-name {{
+                font-weight: 600;
+                color: var(--text);
+                margin-bottom: 0.2rem;
+            }}
+            
+            .product-code {{
+                font-size: 0.75rem;
+                color: #888;
+                font-family: monospace;
+            }}
+            
+            .remarks {{
+                font-size: 0.8rem;
+                color: var(--text-secondary);
+                background-color: #fff8e1;
+                padding: 0.3rem 0.5rem;
+                border-radius: 4px;
+                border-left: 3px solid #ffca28;
+                margin-top: 0.4rem;
+                display: inline-block;
+            }}
+            
+            .empty-state {{
+                padding: 3rem;
+                text-align: center;
+                color: var(--text-secondary);
+                font-style: italic;
+            }}
+        </style>
+        <script>
+            function toggleFullScreen() {{
+                if (!document.fullscreenElement) {{
+                    document.documentElement.requestFullscreen().catch(err => {{
+                        alert(`Error attempting to enable full-screen mode: ${{err.message}} (${{err.name}})`);
+                    }});
+                }} else {{
+                    if (document.exitFullscreen) {{
+                        document.exitFullscreen();
+                    }}
+                }}
+            }}
+        </script>
+    </head>
+    <body>
+        <div class="header">
+            <div style="display: flex; align-items: center; gap: 1.5rem;">
+                <h1>💊 医薬品調達情報 統合ダッシュボード</h1>
+                <button class="fullscreen-btn" onclick="toggleFullScreen()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+                    全画面表示
+                </button>
+            </div>
+            <div class="last-updated">最終更新: {data.get("updated_at", "不明")}</div>
+        </div>
         
-        collabo_data = await fetch_collabo(await context.new_page())
-        medipal_data = await fetch_medipal(await context.new_page())
-        alfweb_data = await fetch_alfweb(await context.new_page())
+        <div class="container">
+    """
+    
+    # 1. Collaboportal
+    collabo_data = data.get("collabo", [])
+    html += f"""
+            <div class="card">
+                <div class="card-header card-collabo">
+                    <span>Collabo Portal (調達中・受注辞退)</span>
+                    <span class="item-count">{len(collabo_data)}件</span>
+                </div>
+                <div class="table-container">
+                    {"<table><thead><tr><th>品名/メーカー</th><th>状況/納期</th><th>数量</th></tr></thead><tbody>" if collabo_data else '<div class="empty-state">該当データなし</div>'}
+    """
+    for item in collabo_data:
+        status_class = "status-danger" if "辞退" in item.get("status", "") else ""
+        remarks_html = f'<div class="remarks">{item.get("remarks")}</div>' if item.get("remarks") else ""
+        date_html = f'<div style="font-size:0.8rem; margin-top:4px;">受付: {item.get("date")}</div>' if item.get("date") else ""
         
-        result = {
+        html += f"""
+                        <tr>
+                            <td>
+                                <span class="maker-name">{item.get("maker", "")}</span>
+                                <div class="product-name">{item.get("name", "")}</div>
+                                <span class="product-code">JAN: {item.get("code", "")}</span>
+                                {remarks_html}
+                            </td>
+                            <td>
+                                <span class="status-badge {status_class}">{item.get("status", "")}</span>
+                                {date_html}
+                            </td>
+                            <td>
+                                <div>発注: <b>{item.get("order_qty", "-")}</b></div>
+                                <div>納品予定: <b>{item.get("deliv_qty", "-")}</b></div>
+                            </td>
+                        </tr>
+        """
+    if collabo_data: html += "</tbody></table>"
+    html += "</div></div>"
+ 
+    # 2. Medipal
+    medipal_data = data.get("medipal", [])
+    html += f"""
+            <div class="card">
+                <div class="card-header card-medipal">
+                    <span>MEDIPAL (メーカー出荷調整品：入荷未定)</span>
+                    <span class="item-count">{len(medipal_data)}件</span>
+                </div>
+                <div class="table-container">
+                    {"<table><thead><tr><th>品名/メーカー</th><th>状況・備考</th></tr></thead><tbody>" if medipal_data else '<div class="empty-state">該当データなし</div>'}
+    """
+    for item in medipal_data:
+        html += f"""
+                        <tr>
+                            <td>
+                                <span class="maker-name">{item.get("maker", "")}</span>
+                                <div class="product-name">{item.get("name", "")}</div>
+                                <span class="product-code">JAN: {item.get("code", "")}</span>
+                            </td>
+                            <td>
+                                <span class="status-badge status-danger">入荷未定</span>
+                                <div style="font-size:0.8rem; margin-top:4px;">{item.get("remarks", "")}</div>
+                            </td>
+                        </tr>
+        """
+    if medipal_data: html += "</tbody></table>"
+    html += "</div></div>"
+ 
+    # 3. ALF-Web
+    alfweb_data = data.get("alfweb", [])
+    html += f"""
+            <div class="card">
+                <div class="card-header card-alfweb">
+                    <span>ALF-Web (出荷停止・入荷未定)</span>
+                    <span class="item-count">{len(alfweb_data)}件</span>
+                </div>
+                <div class="table-container">
+                    {"<table><thead><tr><th>品名/メーカー</th><th>状況</th><th>発注数</th></tr></thead><tbody>" if alfweb_data else '<div class="empty-state">該当データなし</div>'}
+    """
+    for item in alfweb_data:
+        date_html = f'<div style="font-size:0.8rem; margin-top:4px;">更新: {item.get("date")}</div>' if item.get("date") else ""
+        html += f"""
+                        <tr>
+                            <td>
+                                <span class="maker-name">{item.get("maker", "")}</span>
+                                <div class="product-name">{item.get("name", "")}</div>
+                            </td>
+                            <td>
+                                <span class="status-badge status-danger">{item.get("status", "")}</span>
+                                {date_html}
+                            </td>
+                            <td>
+                                <b>{item.get("order_qty", "-")}</b>
+                            </td>
+                        </tr>
+        """
+    if alfweb_data: html += "</tbody></table>"
+                             {date_html}
+                            </td>
+                            <td>
+                                <b>{item.get("order_qty", "-")}</b>
+                            </td>
+                        </tr>
+        """
+    if alfweb_data: html += "</tbody></table>"
+    
+    html += """
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    
+    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+        f.write(html)
+        
+    print(f"Dashboard generated at: {os.path.abspath(OUTPUT_FILE)}")
+
+if __name__ == "__main__":
+    if os.path.exists(INPUT_FILE):
+        with open(INPUT_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        generate_html(data)
+    else:
+        print(f"Error: {INPUT_FILE} not found. Please run fetch_data.py first.")
