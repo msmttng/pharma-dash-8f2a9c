@@ -256,7 +256,7 @@ def generate_html(data):
             <div class="card">
                 <div class="card-header card-collabo">
                     <span>Collabo Portal (調達中・受注辞退)</span>
-                    <span class="item-count">{{len(collabo_data)}}件</span>
+                    <span class="item-count">{len(collabo_data)}件</span>
                 </div>
                 <div class="table-container">
     """
@@ -270,18 +270,18 @@ def generate_html(data):
             html += f"""
                         <tr>
                             <td>
-                                <span class="maker-name">{{item.get("maker", "")}}</span>
-                                <div class="product-name">{{item.get("name", "")}}</div>
-                                <span class="product-code">JAN: {{item.get("code", "")}}</span>
+                                <span class="maker-name">{item.get("maker", "")}</span>
+                                <div class="product-name">{item.get("name", "")}</div>
+                                <span class="product-code">JAN: {item.get("code", "")}</span>
                                 {remarks_html}
                             </td>
                             <td>
-                                <span class="status-badge {status_class}">{{item.get("status", "")}}</span>
+                                <span class="status-badge {status_class}">{item.get("status", "")}</span>
                                 {date_html}
                             </td>
                             <td>
-                                <div>発注: <b>{{item.get("order_qty", "-")}}</b></div>
-                                <div>納品予定: <b>{{item.get("deliv_qty", "-")}}</b></div>
+                                <div>発注: <b>{item.get("order_qty", "-")}</b></div>
+                                <div>納品予定: <b>{item.get("deliv_qty", "-")}</b></div>
                             </td>
                         </tr>
         """
@@ -295,7 +295,7 @@ def generate_html(data):
             <div class="card">
                 <div class="card-header card-medipal">
                     <span>MEDIPAL (メーカー出荷調整品：入荷未定)</span>
-                    <span class="item-count">{{len(medipal_data)}}件</span>
+                    <span class="item-count">{len(medipal_data)}件</span>
                 </div>
                 <div class="table-container">
     """
@@ -305,9 +305,9 @@ def generate_html(data):
             html += f"""
                         <tr>
                             <td>
-                                <span class="maker-name">{{item.get("code", "")}}</span>
-                                <div class="product-name">{{item.get("name", "")}}</div>
-                                <span class="product-code">{{item.get("maker", "")}}</span>
+                                <span class="maker-name">{item.get("code", "")}</span>
+                                <div class="product-name">{item.get("name", "")}</div>
+                                <span class="product-code">{item.get("maker", "")}</span>
                             </td>
                             <td>
                                 <span class="status-badge status-danger">入荷未定</span>
@@ -325,7 +325,7 @@ def generate_html(data):
             <div class="card">
                 <div class="card-header card-alfweb">
                     <span>ALF-Web (出荷停止・入荷未定)</span>
-                    <span class="item-count">{{len(alfweb_data)}}件</span>
+                    <span class="item-count">{len(alfweb_data)}件</span>
                 </div>
                 <div class="table-container">
     """
@@ -336,11 +336,11 @@ def generate_html(data):
             html += f"""
                         <tr>
                             <td>
-                                <span class="maker-name">{{item.get("maker", "")}}</span>
-                                <div class="product-name">{{item.get("name", "")}}</div>
+                                <span class="maker-name">{item.get("maker", "")}</span>
+                                <div class="product-name">{item.get("name", "")}</div>
                             </td>
                             <td>
-                                <span class="status-badge status-danger">{{item.get("status", "入荷未定")}}</span>
+                                <span class="status-badge status-danger">{item.get("status", "入荷未定")}</span>
                                 {date_html}
                             </td>
                         </tr>
