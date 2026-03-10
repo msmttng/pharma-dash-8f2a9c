@@ -10,6 +10,16 @@ DEBUG_DIR = "debug"
 
 os.makedirs(DEBUG_DIR, exist_ok=True)
 
+# Try to load secrets from a single JSON string environment variable (for easier setup)
+config_json = os.environ.get("PHARMA_CONFIG")
+if config_json:
+    try:
+        ext_config = json.loads(config_json)
+        for k, v in ext_config.items():
+            os.environ[k] = str(v)
+    except Exception as e:
+        print(f"Warning: Failed to parse PHARMA_CONFIG JSON: {e}")
+
 async def fetch_collabo(page):
     print("\n--- Starting Collaboportal Scrape ---")
     data = []
