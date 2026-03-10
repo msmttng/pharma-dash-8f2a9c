@@ -48,7 +48,7 @@ def generate_html(data):
             
             .header {{
                 background-color: var(--surface);
-                padding: 1.5rem 2rem;
+                padding: 1rem 1.5rem;
                 box-shadow: 0 2px 4px rgba(0,0,0,0.05);
                 display: flex;
                 justify-content: space-between;
@@ -60,26 +60,26 @@ def generate_html(data):
             
             .header h1 {{
                 margin: 0;
-                font-size: 1.5rem;
+                font-size: 1.2rem;
                 color: var(--text);
                 font-weight: 600;
             }}
             
             .last-updated {{
-                font-size: 0.9rem;
+                font-size: 0.8rem;
                 color: var(--text-secondary);
                 background-color: #f0f0f0;
-                padding: 0.4rem 0.8rem;
+                padding: 0.3rem 0.6rem;
                 border-radius: 20px;
             }}
             
             .container {{
                 max-width: 100%;
-                margin: 1rem auto;
-                padding: 0 1rem;
+                margin: 0.5rem auto;
+                padding: 0 0.5rem;
                 display: grid;
-                grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-                gap: 1rem;
+                grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+                gap: 0.75rem;
             }}
             
             .card {{
@@ -89,16 +89,17 @@ def generate_html(data):
                 overflow: hidden;
                 display: flex;
                 flex-direction: column;
-                height: 100%;
+                height: calc(100vh - 100px); /* Fill most of the screen height */
             }}
             
             .card-header {{
-                padding: 1rem 1.5rem;
+                padding: 0.75rem 1rem;
                 color: white;
                 font-weight: 600;
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
+                font-size: 0.9rem;
             }}
             
             .card-collabo {{ background-color: var(--tertiary); }}
@@ -107,50 +108,36 @@ def generate_html(data):
             
             .item-count {{
                 background: rgba(255,255,255,0.2);
-                padding: 0.2rem 0.6rem;
+                padding: 0.1rem 0.5rem;
                 border-radius: 12px;
-                font-size: 0.85rem;
+                font-size: 0.8rem;
             }}
             
-            /* Vertical monitor optimization */
-            @media (min-aspect-ratio: 1/1) {{
-                .table-container {{
-                    max-height: 60vh;
-                }}
-            }}
-            
-            @media (max-aspect-ratio: 1/1) {{
-                .container {{
-                    grid-template-columns: 1fr;
-                }}
-                .table-container {{
-                    max-height: none; /* Let it expand on vertical monitors */
-                }}
+            /* High density for vertical monitors */
+            .table-container {{
+                overflow-x: auto;
+                flex-grow: 1;
+                overflow-y: auto;
+                max-height: none;
             }}
 
             .fullscreen-btn {{
                 background-color: var(--primary);
                 color: white;
                 border: none;
-                padding: 0.5rem 1rem;
+                padding: 0.4rem 0.8rem;
                 border-radius: 4px;
                 cursor: pointer;
                 font-weight: 600;
-                font-size: 0.85rem;
+                font-size: 0.8rem;
                 display: flex;
                 align-items: center;
-                gap: 0.5rem;
+                gap: 0.4rem;
                 transition: background-color 0.2s;
             }}
             
             .fullscreen-btn:hover {{
                 background-color: #1565C0;
-            }}
-
-            .table-container {{
-                overflow-x: auto;
-                flex-grow: 1;
-                overflow-y: auto;
             }}
             
             table {{
@@ -255,7 +242,7 @@ def generate_html(data):
                     全画面表示
                 </button>
             </div>
-            <div class="last-updated">最終更新: {data.get("updated_at", "不明")}</div>
+            <div class="last-updated">最終更新: {{data.get("updated_at", "不明")}}</div>
         </div>
         
         <div class="container">
@@ -267,31 +254,31 @@ def generate_html(data):
             <div class="card">
                 <div class="card-header card-collabo">
                     <span>Collabo Portal (調達中・受注辞退)</span>
-                    <span class="item-count">{{len(collabo_data)}}件</span>
+                    <span class="item-count">{len(collabo_data)}件</span>
                 </div>
                 <div class="table-container">
-                    {{"<table><thead><tr><th>品名/メーカー</th><th>状況/納期</th><th>数量</th></tr></thead><tbody>" if collabo_data else '<div class="empty-state">該当データなし</div>'}}
+                    {"<table><thead><tr><th>品名/メーカー</th><th>状況/納期</th><th>数量</th></tr></thead><tbody>" if collabo_data else '<div class="empty-state">該当データなし</div>'}
     """
     for item in collabo_data:
         status_class = "status-danger" if "辞退" in item.get("status", "") else ""
-        remarks_html = f'<div class="remarks">{{item.get("remarks")}}</div>' if item.get("remarks") else ""
-        date_html = f'<div style="font-size:0.8rem; margin-top:4px;">受付: {{item.get("date")}}</div>' if item.get("date") else ""
+        remarks_html = f'<div class="remarks">{item.get("remarks")}</div>' if item.get("remarks") else ""
+        date_html = f'<div style="font-size:0.8rem; margin-top:4px;">受付: {item.get("date")}</div>' if item.get("date") else ""
         
         html += f"""
                         <tr>
                             <td>
-                                <span class="maker-name">{{item.get("maker", "")}}</span>
-                                <div class="product-name">{{item.get("name", "")}}</div>
-                                <span class="product-code">JAN: {{item.get("code", "")}}</span>
-                                {{remarks_html}}
+                                <span class="maker-name">{item.get("maker", "")}</span>
+                                <div class="product-name">{item.get("name", "")}</div>
+                                <span class="product-code">JAN: {item.get("code", "")}</span>
+                                {remarks_html}
                             </td>
                             <td>
-                                <span class="status-badge {{status_class}}">{{item.get("status", "")}}</span>
-                                {{date_html}}
+                                <span class="status-badge {status_class}">{item.get("status", "")}</span>
+                                {date_html}
                             </td>
                             <td>
-                                <div>発注: <b>{{item.get("order_qty", "-")}}</b></div>
-                                <div>納品予定: <b>{{item.get("deliv_qty", "-")}}</b></div>
+                                <div>発注: <b>{item.get("order_qty", "-")}</b></div>
+                                <div>納品予定: <b>{item.get("deliv_qty", "-")}</b></div>
                             </td>
                         </tr>
         """
@@ -304,22 +291,22 @@ def generate_html(data):
             <div class="card">
                 <div class="card-header card-medipal">
                     <span>MEDIPAL (メーカー出荷調整品：入荷未定)</span>
-                    <span class="item-count">{{len(medipal_data)}}件</span>
+                    <span class="item-count">{len(medipal_data)}件</span>
                 </div>
                 <div class="table-container">
-                    {{"<table><thead><tr><th>品名/メーカー</th><th>状況・備考</th></tr></thead><tbody>" if medipal_data else '<div class="empty-state">該当データなし</div>'}}
+                    {"<table><thead><tr><th>品名/メーカー</th><th>状況・備考</th></tr></thead><tbody>" if medipal_data else '<div class="empty-state">該当データなし</div>'}
     """
     for item in medipal_data:
         html += f"""
                         <tr>
                             <td>
-                                <span class="maker-name">{{item.get("maker", "")}}</span>
-                                <div class="product-name">{{item.get("name", "")}}</div>
-                                <span class="product-code">{{item.get("code", "")}}</span>
+                                <span class="maker-name">{item.get("maker", "")}</span>
+                                <div class="product-name">{item.get("name", "")}</div>
+                                <span class="product-code">{item.get("code", "")}</span>
                             </td>
                             <td>
                                 <span class="status-badge status-danger">入荷未定</span>
-                                <div style="font-size:0.8rem; margin-top:4px;">{{item.get("remarks", "")}}</div>
+                                <div style="font-size:0.8rem; margin-top:4px;">{item.get("remarks", "")}</div>
                             </td>
                         </tr>
         """
@@ -332,25 +319,25 @@ def generate_html(data):
             <div class="card">
                 <div class="card-header card-alfweb">
                     <span>ALF-Web (出荷停止・入荷未定)</span>
-                    <span class="item-count">{{len(alfweb_data)}}件</span>
+                    <span class="item-count">{len(alfweb_data)}件</span>
                 </div>
                 <div class="table-container">
-                    {{"<table><thead><tr><th>品名/メーカー</th><th>状況</th><th>発注数</th></tr></thead><tbody>" if alfweb_data else '<div class="empty-state">該当データなし</div>'}}
+                    {"<table><thead><tr><th>品名/メーカー</th><th>状況</th><th>発注数</th></tr></thead><tbody>" if alfweb_data else '<div class="empty-state">該当データなし</div>'}
     """
     for item in alfweb_data:
-        date_html = f'<div style="font-size:0.8rem; margin-top:4px;">更新: {{item.get("date")}}</div>' if item.get("date") else ""
+        date_html = f'<div style="font-size:0.8rem; margin-top:4px;">更新: {item.get("date")}</div>' if item.get("date") else ""
         html += f"""
                         <tr>
                             <td>
-                                <span class="maker-name">{{item.get("maker", "")}}</span>
-                                <div class="product-name">{{item.get("name", "")}}</div>
+                                <span class="maker-name">{item.get("maker", "")}</span>
+                                <div class="product-name">{item.get("name", "")}</div>
                             </td>
                             <td>
-                                <span class="status-badge status-danger">{{item.get("status", "")}}</span>
-                                {{date_html}}
+                                <span class="status-badge status-danger">{item.get("status", "")}</span>
+                                {date_html}
                             </td>
                             <td>
-                                <b>{{item.get("order_qty", "-")}}</b>
+                                <b>{item.get("order_qty", "-")}</b>
                             </td>
                         </tr>
         """
