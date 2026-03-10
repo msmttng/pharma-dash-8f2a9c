@@ -115,12 +115,35 @@ async def fetch_medipal(page):
         for err_icon in items_raw:
             row = err_icon.find_parent("div", class_="row") or err_icon.find_parent("tr") or err_icon.find_parent("div")
             if row:
-                name_el = row.select_one("[id^='hnmy']")
-                name = name_el.text.strip() if name_el else "Unknown"
-                texts = [t.strip() for t in row.stripped_strings]
+                name_el = row.select_one("td.MstHnm") or row.select_one("[id^='hnmy']")
+                name = name_el.text.strip() if name_el else (row.text.strip().split("\n")[0] if row else "Unknown")
+                
+                # Check for "Unknown" to fall back to a more aggressive parse if necessary
+                if name == "Unknown" or not name:
+                    texts = [t.strip() for t in row.stripped_strings if t.strip()]
+                    if len(texts) > 3:
+                        name = texts[3]
+                        
+                texts = [t.strip() for t in row.stripped_strings if t.strip()]
+                
+                code = ""
+                maker = ""
+                
+                # Usually JAN codes are 13 or 14 digits.
+                # Let's find which text looks like a code and which looks like a maker.
+                for t in texts:
+                    if t.isdigit() and len(t) >= 10:
+                        code = t
+                    elif any(m in t for m in ["製薬", "薬品", "工業", "ファーマ", "ラボ", "ケミカル", "キリン", "メディック", "興和", "ファルマ"]):
+                        maker = t
+                
+                # Fallback if logic above fails
+                if not maker and len(texts) > 1 and not texts[1].isdigit(): maker = texts[1]
+                if not code and len(texts) > 2 and texts[2].isdigit(): code = texts[2]
+                
                 item = {
-                    "code": texts[1] if len(texts) > 1 else "",
-                    "maker": texts[2] if len(texts) > 2 else "",
+                    "code": code,
+                    "maker": maker,
                     "name": name,
                     "remarks": "メーカー出荷調整品：入荷未定"
                 }
