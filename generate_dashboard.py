@@ -368,13 +368,15 @@ def generate_html(data):
                 <div class="table-container">
     """
     if medipal_data:
-        html += "<table><thead><tr><th>品名/メーカー</th><th>状況・備考</th><th>数量</th></tr></thead><tbody>"
+        html += "<table><thead><tr><th>品名/メーカー</th><th>状況・備考</th><th style=\'white-space:nowrap;\'>数量</th></tr></thead><tbody>"
         for item in medipal_data:
             remarks = item.get("remarks", "")
             is_warning = "調整" in remarks or "未定" in remarks or "欠品" in remarks
             status_class = "status-danger" if is_warning else "status-success"
             status_label = "入荷未定" if is_warning else "通常"
-            
+            # 「通常」のときは備考テキストを非表示
+            remarks_html = f'<div style="font-size:0.8rem; margin-top:4px; white-space:normal;">{remarks}</div>' if is_warning else ""
+
             html += f"""
                         <tr>
                             <td>
@@ -384,9 +386,9 @@ def generate_html(data):
                             </td>
                             <td style="white-space: nowrap;">
                                 <span class="status-badge {status_class}">{status_label}</span>
-                                <div style="font-size:0.8rem; margin-top:4px; white-space: normal;">{remarks}</div>
+                                {remarks_html}
                             </td>
-                            <td>
+                            <td style="white-space: nowrap;">
                                 <div>発注: <b>{item.get("order_qty", "-")}</b></div>
                                 <div>納品予定: <b>{item.get("deliv_qty", "-")}</b></div>
                             </td>
