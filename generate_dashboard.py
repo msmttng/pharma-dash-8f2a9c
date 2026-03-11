@@ -320,7 +320,7 @@ def generate_html(data):
                 <div class="table-container">
     """
     if collabo_data:
-        html += "<table><thead><tr><th>品名/メーカー</th><th>状況/納期</th><th style="min-width:110px;white-space:nowrap;">数量</th></tr></thead><tbody>"
+        html += "<table><thead><tr><th>品名/メーカー</th><th>状況/納期</th><th style='min-width:110px;white-space:nowrap;'>数量</th></tr></thead><tbody>"
         for item in collabo_data:
             remarks_html = f'<div class="remarks">{item.get("remarks", "")}</div>' if item.get("remarks") else ""
             
