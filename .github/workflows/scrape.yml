@@ -1,15 +1,12 @@
 name: Scrape Pharma Data
-
 on:
   schedule:
     - cron: '0 */1 * * *'
   workflow_dispatch:
-
 permissions:
   contents: write
   pages: write
   id-token: write
-
 jobs:
   scrape-and-build:
     runs-on: ubuntu-latest
@@ -29,6 +26,12 @@ jobs:
         env:
           PHARMA_CONFIG: ${{ secrets.PHARMA_CONFIG }}
         run: python fetch_data.py
+      - name: Upload debug files
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: debug-html
+          path: debug/
       - name: Generate Dashboard HTML
         env:
           PHARMA_CONFIG: ${{ secrets.PHARMA_CONFIG }}
@@ -39,7 +42,6 @@ jobs:
         uses: actions/upload-pages-artifact@v3
         with:
           path: '.'
-
   deploy:
     environment:
       name: github-pages
@@ -50,4 +52,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
