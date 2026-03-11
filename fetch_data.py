@@ -106,21 +106,22 @@ async def fetch_medipal(page):
         html = await page.content()
         soup = BeautifulSoup(html, "html.parser")
         
-        # Look for the error indicators as well as normal items
+        # Save debug HTML for inspection
+        with open(os.path.join(DEBUG_DIR, "medipal_debug.html"), "w", encoding="utf-8") as f:
+            f.write(html)
+
         container = soup.select_one("section#cFooter") or soup
-        # We try to get all item rows, assuming they might have classes like .row or are just tr elements in a table
         items_raw = container.select(".row, tr")
         print(f"Found {len(items_raw)} potential item rows in Medipal.")
         
         for row in items_raw:
-            # Skip header rows or empty rows
-            if not row.text.strip() or row.find("th"):
+            # Skip header rows, empty rows, or parent rows that contain nested tr
+            if not row.text.strip() or row.find("th") or row.find("tr"):
                 continue
                 
             name_el = row.select_one("td.MstHnm") or row.select_one("[id^='hnmy']")
             name = name_el.text.strip() if name_el else (row.text.strip().split("\n")[0])
             
-            # Check for "Unknown" to fall back to a more aggressive parse if necessary
             if name == "Unknown" or not name:
                 texts = [t.strip() for t in row.stripped_strings if t.strip()]
                 if len(texts) > 3:
@@ -128,32 +129,66 @@ async def fetch_medipal(page):
                     
             texts = [t.strip() for t in row.stripped_strings if t.strip()]
             
-            # Check for error indicator inside this row
             has_error = bool(row.select_one(".MstKpnErr"))
             remarks = "メーカー出荷調整品：入荷未定" if has_error else "通常"
                 
             code = ""
             maker = ""
-            
-            # Usually JAN codes are 13 or 14 digits.
-            # Let's find which text looks like a code and which looks like a maker.
+            order_qty = "-"
+            deliv_qty = "-"
+
+            # --- 発注数・納品予定数の取得 ---
+            # 発注数: td.MstHcyOrdrQty や id^='ordrqty' などを試みる
+            order_el = (
+                row.select_one("td.MstHcyOrdrQty")
+                or row.select_one("[id^='ordrqty']")
+                or row.select_one("[id^='ordqty']")
+                or row.select_one(".ordrQty")
+            )
+            if order_el:
+                order_qty = order_el.text.strip() or "-"
+
+            # 納品予定数: td.MstHcyDlvQty や id^='dlvqty' などを試みる
+            deliv_el = (
+                row.select_one("td.MstHcyDlvQty")
+                or row.select_one("[id^='dlvqty']")
+                or row.select_one("[id^='delivqty']")
+                or row.select_one(".dlvQty")
+            )
+            if deliv_el:
+                deliv_qty = deliv_el.text.strip() or "-"
+
+            # --- コード・メーカー名の取得 ---
             for t in texts:
                 if t.isdigit() and len(t) >= 10:
                     code = t
                 elif any(m in t for m in ["製薬", "薬品", "工業", "ファーマ", "ラボ", "ケミカル", "キリン", "メディック", "興和", "ファルマ"]):
                     maker = t
             
-            # Fallback if logic above fails
             if not maker and len(texts) > 1 and not texts[1].isdigit(): maker = texts[1]
             if not code and len(texts) > 2 and texts[2].isdigit(): code = texts[2]
+
+            # 数量が texts の特定インデックスにある場合のフォールバック
+            # (order_qty, deliv_qty がまだ取れていない場合、テキスト列から推測)
+            if order_qty == "-" and deliv_qty == "-":
+                # 数字だけの列を順に探す（コード以外）
+                numeric_texts = [t for t in texts if t.replace(",", "").isdigit() and len(t) < 10]
+                if len(numeric_texts) >= 2:
+                    order_qty = numeric_texts[0]
+                    deliv_qty = numeric_texts[1]
+                elif len(numeric_texts) == 1:
+                    order_qty = numeric_texts[0]
                 
             item = {
                 "code": code,
                 "maker": maker,
                 "name": name,
+                "order_qty": order_qty,
+                "deliv_qty": deliv_qty,
                 "remarks": remarks
             }
-            if item not in data:
+            # name と code の組み合わせで重複排除
+            if name and not any(d["name"] == name and d["code"] == code for d in data):
                 data.append(item)
         print(f"Extraction successful: {len(data)} items found.")
     except Exception as e:
@@ -212,6 +247,7 @@ async def fetch_alfweb(page):
                         "maker": cols[1].text.strip(),
                         "name": name_text,
                         "order_qty": cols[3].text.strip(),
+                        "deliv_qty": cols[4].text.strip() if len(cols) > 4 else "-",
                         "status": "出荷停止・入荷未定",
                     }
                     data.append(item)
@@ -241,9 +277,8 @@ async def main():
             "updated_at": datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
         }
         
-        # If all data lists are empty, maybe log a warning
         if not any(result[k] for k in ["collabo", "medipal", "alfweb"] if isinstance(result[k], list)):
-            print("WARNING: No data extracted from any site. Checker your credentials or network status.")
+            print("WARNING: No data extracted from any site. Check your credentials or network status.")
         
         with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
             json.dump(result, f, ensure_ascii=False, indent=2)
