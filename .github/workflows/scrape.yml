@@ -50,9 +50,4 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-- name: Upload debug files
-  uses: actions/upload-artifact@v4
-  if: always()
-  with:
-    name: debug-html
-    path: debug/
+
