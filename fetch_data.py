@@ -106,48 +106,55 @@ async def fetch_medipal(page):
         html = await page.content()
         soup = BeautifulSoup(html, "html.parser")
         
-        # Look for the error indicators
+        # Look for the error indicators as well as normal items
         container = soup.select_one("section#cFooter") or soup
-        items_raw = container.select(".MstKpnErr")
-        print(f"Found {len(items_raw)} items with error indicators in Medipal.")
+        # We try to get all item rows, assuming they might have classes like .row or are just tr elements in a table
+        items_raw = container.select(".row, tr")
+        print(f"Found {len(items_raw)} potential item rows in Medipal.")
         
-        for err_icon in items_raw:
-            row = err_icon.find_parent("div", class_="row") or err_icon.find_parent("tr") or err_icon.find_parent("div")
-            if row:
-                name_el = row.select_one("td.MstHnm") or row.select_one("[id^='hnmy']")
-                name = name_el.text.strip() if name_el else (row.text.strip().split("\n")[0] if row else "Unknown")
+        for row in items_raw:
+            # Skip header rows or empty rows
+            if not row.text.strip() or row.find("th"):
+                continue
                 
-                # Check for "Unknown" to fall back to a more aggressive parse if necessary
-                if name == "Unknown" or not name:
-                    texts = [t.strip() for t in row.stripped_strings if t.strip()]
-                    if len(texts) > 3:
-                        name = texts[3]
-                        
+            name_el = row.select_one("td.MstHnm") or row.select_one("[id^='hnmy']")
+            name = name_el.text.strip() if name_el else (row.text.strip().split("\n")[0])
+            
+            # Check for "Unknown" to fall back to a more aggressive parse if necessary
+            if name == "Unknown" or not name:
                 texts = [t.strip() for t in row.stripped_strings if t.strip()]
+                if len(texts) > 3:
+                    name = texts[3]
+                    
+            texts = [t.strip() for t in row.stripped_strings if t.strip()]
+            
+            # Check for error indicator inside this row
+            has_error = bool(row.select_one(".MstKpnErr"))
+            remarks = "メーカー出荷調整品：入荷未定" if has_error else "通常"
                 
-                code = ""
-                maker = ""
+            code = ""
+            maker = ""
+            
+            # Usually JAN codes are 13 or 14 digits.
+            # Let's find which text looks like a code and which looks like a maker.
+            for t in texts:
+                if t.isdigit() and len(t) >= 10:
+                    code = t
+                elif any(m in t for m in ["製薬", "薬品", "工業", "ファーマ", "ラボ", "ケミカル", "キリン", "メディック", "興和", "ファルマ"]):
+                    maker = t
+            
+            # Fallback if logic above fails
+            if not maker and len(texts) > 1 and not texts[1].isdigit(): maker = texts[1]
+            if not code and len(texts) > 2 and texts[2].isdigit(): code = texts[2]
                 
-                # Usually JAN codes are 13 or 14 digits.
-                # Let's find which text looks like a code and which looks like a maker.
-                for t in texts:
-                    if t.isdigit() and len(t) >= 10:
-                        code = t
-                    elif any(m in t for m in ["製薬", "薬品", "工業", "ファーマ", "ラボ", "ケミカル", "キリン", "メディック", "興和", "ファルマ"]):
-                        maker = t
-                
-                # Fallback if logic above fails
-                if not maker and len(texts) > 1 and not texts[1].isdigit(): maker = texts[1]
-                if not code and len(texts) > 2 and texts[2].isdigit(): code = texts[2]
-                
-                item = {
-                    "code": code,
-                    "maker": maker,
-                    "name": name,
-                    "remarks": "メーカー出荷調整品：入荷未定"
-                }
-                if item not in data:
-                    data.append(item)
+            item = {
+                "code": code,
+                "maker": maker,
+                "name": name,
+                "remarks": remarks
+            }
+            if item not in data:
+                data.append(item)
         print(f"Extraction successful: {len(data)} items found.")
     except Exception as e:
         print(f"Medipal Error: {e}")
