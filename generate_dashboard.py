@@ -243,6 +243,41 @@ def generate_html(data):
                     }}
                 }}
             }}
+            
+            function toggleWarningsOnly() {{
+                const btn = document.getElementById("filter-btn");
+                const isFiltering = btn.dataset.filtering === "true";
+                
+                // Toggle state
+                btn.dataset.filtering = !isFiltering;
+                btn.innerHTML = !isFiltering ? "🔄 すべて表示" : "⚠️ 警告のみ表示";
+                btn.style.backgroundColor = !isFiltering ? "var(--status-bg-warning)" : "#fff";
+                btn.style.color = !isFiltering ? "var(--status-text-warning)" : "var(--text)";
+                btn.style.border = !isFiltering ? "none" : "1px solid var(--border)";
+                
+                // Filter rows
+                const rows = document.querySelectorAll("tbody tr");
+                rows.forEach(row => {{
+                    if (!isFiltering) {{
+                        // Only show rows that contain a status-danger badge
+                        if (!row.querySelector(".status-danger")) {{
+                            row.style.display = "none";
+                        }}
+                    }} else {{
+                        // Show all
+                        row.style.display = "";
+                    }}
+                }});
+                
+                // Update counts on cards based on visible rows
+                document.querySelectorAll('.card').forEach(card => {{
+                    const visibleRows = card.querySelectorAll("tbody tr:not([style*='display: none'])").length;
+                    const countSpan = card.querySelector(".item-count");
+                    if (countSpan && card.querySelector("tbody")) {{
+                        countSpan.innerText = visibleRows + "件";
+                    }}
+                }});
+            }}
         </script>
     </head>
     <body>
@@ -253,6 +288,17 @@ def generate_html(data):
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
                     全画面表示
                 </button>
+                <button id="filter-btn" data-filtering="false" onclick="toggleWarningsOnly()" style="
+                    background-color: #fff;
+                    color: var(--text);
+                    border: 1px solid var(--border);
+                    padding: 0.4rem 0.8rem;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-weight: 600;
+                    font-size: 0.8rem;
+                    transition: all 0.2s;
+                ">⚠️ 警告のみ表示</button>
             </div>
             <div class="last-updated">最終更新: {updated_at}</div>
         </div>
@@ -312,7 +358,7 @@ def generate_html(data):
     html += f"""
             <div class="card">
                 <div class="card-header card-medipal">
-                    <span>MEDIPAL (メーカー出荷調整品：入荷未定)</span>
+                    <span>MEDIPAL (全ステータス表示)</span>
                     <span class="item-count">{len(medipal_data)}件</span>
                 </div>
                 <div class="table-container">
@@ -320,6 +366,11 @@ def generate_html(data):
     if medipal_data:
         html += "<table><thead><tr><th>品名/メーカー</th><th>状況・備考</th></tr></thead><tbody>"
         for item in medipal_data:
+            remarks = item.get("remarks", "")
+            is_warning = "調整" in remarks or "未定" in remarks or "欠品" in remarks
+            status_class = "status-danger" if is_warning else "status-success"
+            status_label = "入荷未定" if is_warning else "通常"
+            
             html += f"""
                         <tr>
                             <td>
@@ -328,8 +379,8 @@ def generate_html(data):
                                 <span class="product-code">{item.get("code", "")}</span>
                             </td>
                             <td style="white-space: nowrap;">
-                                <span class="status-badge status-danger">入荷未定</span>
-                                <div style="font-size:0.8rem; margin-top:4px; white-space: normal;">メーカー出荷調整品：入荷未定</div>
+                                <span class="status-badge {status_class}">{status_label}</span>
+                                <div style="font-size:0.8rem; margin-top:4px; white-space: normal;">{remarks}</div>
                             </td>
                         </tr>
         """
