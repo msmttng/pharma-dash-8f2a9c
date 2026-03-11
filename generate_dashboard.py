@@ -1,6 +1,6 @@
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 INPUT_FILE = "pharma_data.json"
 OUTPUT_FILE = "index.html"
@@ -9,7 +9,8 @@ def generate_html(data):
     collabo_data = data.get("collabo", [])
     medipal_data = data.get("medipal", [])
     alfweb_data = data.get("alfweb", [])
-    updated_at = data.get("updated_at", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    JST = timezone(timedelta(hours=9), 'JST')
+    updated_at = data.get("updated_at", datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S"))
 
     html = f"""
     <!DOCTYPE html>
@@ -22,7 +23,7 @@ def generate_html(data):
         <style>
             :root {{
                 --primary: #42A5F5; /* ALF-Web Blue */
-                --secondary: #66BB6A; /* MEDIPAL Green */
+                --secondary: #008B3E; /* MEDIPAL Green */
                 --tertiary: #4FC3F7; /* Collabo Water Blue */
                 --bg: #f8fafc;
                 --surface: #ffffff;
