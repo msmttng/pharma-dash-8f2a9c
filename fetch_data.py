@@ -1,7 +1,7 @@
 import asyncio
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from playwright.async_api import async_playwright
 from bs4 import BeautifulSoup
 
@@ -216,7 +216,8 @@ async def fetch_alfweb(page):
 
 async def main():
     async with async_playwright() as p:
-        print(f"--- Starting Browser (Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}) ---")
+        JST = timezone(timedelta(hours=9), 'JST')
+        print(f"--- Starting Browser (Time: {datetime.now(JST).strftime('%Y-%m-%d %H:%M:%S')}) ---")
         browser = await p.chromium.launch(headless=True)
         context = await browser.new_context(
             viewport={'width': 1920, 'height': 1080},
@@ -231,7 +232,7 @@ async def main():
             "collabo": collabo_data,
             "medipal": medipal_data,
             "alfweb": alfweb_data,
-            "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "updated_at": datetime.now(JST).strftime("%Y-%m-%d %H:%M:%S")
         }
         
         # If all data lists are empty, maybe log a warning
