@@ -324,7 +324,6 @@ def generate_html(data):
         for item in collabo_data:
             remarks_html = f'<div class="remarks">{item.get("remarks", "")}</div>' if item.get("remarks") else ""
             
-            # Badge color logic
             status_text = item.get("status", "")
             if "辞退" in status_text or "停止" in status_text:
                 status_class = "status-danger"
@@ -368,13 +367,12 @@ def generate_html(data):
                 <div class="table-container">
     """
     if medipal_data:
-        html += "<table><thead><tr><th>品名/メーカー</th><th>状況・備考</th><th style=\'white-space:nowrap;\'>数量</th></tr></thead><tbody>"
+        html += "<table><thead><tr><th>品名/メーカー</th><th>状況・備考</th><th style='white-space:nowrap;'>数量</th></tr></thead><tbody>"
         for item in medipal_data:
             remarks = item.get("remarks", "")
             is_warning = "調整" in remarks or "未定" in remarks or "欠品" in remarks
             status_class = "status-danger" if is_warning else "status-success"
             status_label = "入荷未定" if is_warning else "通常"
-            # 「通常」のときは備考テキストを非表示
             remarks_html = f'<div style="font-size:0.8rem; margin-top:4px; white-space:normal;">{remarks}</div>' if is_warning else ""
 
             html += f"""
