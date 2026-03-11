@@ -367,7 +367,7 @@ def generate_html(data):
                 <div class="table-container">
     """
     if medipal_data:
-        html += "<table><thead><tr><th>品名/メーカー</th><th>状況・備考</th><th style='white-space:nowrap;'>数量</th></tr></thead><tbody>"
+        html += "<table style='table-layout: fixed; width: 100%;'><thead><tr><th style='width: 55%;'>品名/メーカー</th><th style='width: 25%;'>状況・備考</th><th style='width: 20%; white-space:nowrap;'>数量</th></tr></thead><tbody>"
         for item in medipal_data:
             remarks = item.get("remarks", "")
             is_warning = "調整" in remarks or "未定" in remarks or "欠品" in remarks
@@ -377,7 +377,7 @@ def generate_html(data):
 
             html += f"""
                         <tr>
-                            <td>
+                            <td style="word-break: break-all;">
                                 <span class="maker-name">{item.get("maker", "")}</span>
                                 <div class="product-name">{item.get("name", "")}</div>
                                 <span class="product-code">{item.get("code", "")}</span>
