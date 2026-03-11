@@ -329,9 +329,9 @@ def generate_html(data):
             if "辞退" in status_text or "停止" in status_text:
                 status_class = "status-danger"
             elif "納品済" in status_text or "出荷準備中" in status_text or "本日" in status_text or "明日" in status_text:
-                status_class = "status-success" # We will add this CSS rule later or depend on default neutral
+                status_class = "status-success"
             else:
-                status_class = "" # Default warning style
+                status_class = ""
                 
             date_html = f'<div style="font-size:0.8rem; margin-top:4px;">受付: {item.get("date")}</div>' if item.get("date") else ""
             
@@ -368,7 +368,7 @@ def generate_html(data):
                 <div class="table-container">
     """
     if medipal_data:
-        html += "<table><thead><tr><th>品名/メーカー</th><th>状況・備考</th></tr></thead><tbody>"
+        html += "<table><thead><tr><th>品名/メーカー</th><th>状況・備考</th><th>数量</th></tr></thead><tbody>"
         for item in medipal_data:
             remarks = item.get("remarks", "")
             is_warning = "調整" in remarks or "未定" in remarks or "欠品" in remarks
@@ -385,6 +385,10 @@ def generate_html(data):
                             <td style="white-space: nowrap;">
                                 <span class="status-badge {status_class}">{status_label}</span>
                                 <div style="font-size:0.8rem; margin-top:4px; white-space: normal;">{remarks}</div>
+                            </td>
+                            <td>
+                                <div>発注: <b>{item.get("order_qty", "-")}</b></div>
+                                <div>納品予定: <b>{item.get("deliv_qty", "-")}</b></div>
                             </td>
                         </tr>
         """
@@ -403,7 +407,7 @@ def generate_html(data):
                 <div class="table-container">
     """
     if alfweb_data:
-        html += "<table><thead><tr><th>品名/メーカー</th><th>状況・備考</th></tr></thead><tbody>"
+        html += "<table><thead><tr><th>品名/メーカー</th><th>状況・備考</th><th>数量</th></tr></thead><tbody>"
         for item in alfweb_data:
             date_html = f'<div style="font-size:0.8rem; margin-top:4px;">更新: {item.get("date")}</div>' if item.get("date") else ""
             html += f"""
@@ -415,6 +419,10 @@ def generate_html(data):
                             <td style="white-space: nowrap;">
                                 <span class="status-badge status-danger">{item.get("status", "入荷未定")}</span>
                                 {date_html}
+                            </td>
+                            <td>
+                                <div>発注: <b>{item.get("order_qty", "-")}</b></div>
+                                <div>納品予定: <b>{item.get("deliv_qty", "-")}</b></div>
                             </td>
                         </tr>
         """
