@@ -250,7 +250,7 @@ def generate_html(data):
                 
                 // Toggle state
                 btn.dataset.filtering = !isFiltering;
-                btn.innerHTML = !isFiltering ? "🔄 すべて表示" : "⚠️ 警告のみ表示";
+                btn.innerHTML = !isFiltering ? "🔄 すべて表示" : "⚠️ 警告・保留・調達中のみ";
                 btn.style.backgroundColor = !isFiltering ? "var(--status-bg-warning)" : "#fff";
                 btn.style.color = !isFiltering ? "var(--status-text-warning)" : "var(--text)";
                 btn.style.border = !isFiltering ? "none" : "1px solid var(--border)";
@@ -259,8 +259,12 @@ def generate_html(data):
                 const rows = document.querySelectorAll("tbody tr");
                 rows.forEach(row => {{
                     if (!isFiltering) {{
-                        // Only show rows that contain a status-danger badge
-                        if (!row.querySelector(".status-danger")) {{
+                        // Only show rows that contain danger OR warning statuses (調達中, 保留)
+                        const hasDanger = row.querySelector(".status-danger") !== null;
+                        const textContent = row.innerText;
+                        const hasWarning = textContent.includes("保留") || textContent.includes("調達中");
+                        
+                        if (!hasDanger && !hasWarning) {{
                             row.style.display = "none";
                         }}
                     }} else {{
@@ -298,7 +302,7 @@ def generate_html(data):
                     font-weight: 600;
                     font-size: 0.8rem;
                     transition: all 0.2s;
-                ">⚠️ 警告のみ表示</button>
+                ">⚠️ 警告・保留・調達中のみ</button>
             </div>
             <div class="last-updated">最終更新: {updated_at}</div>
         </div>
