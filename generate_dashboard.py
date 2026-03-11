@@ -188,6 +188,12 @@ def generate_html(data):
                 border: 1px solid rgba(185, 28, 28, 0.1);
             }}
             
+            .status-success {{
+                background-color: #dcfce7;
+                color: #166534;
+                border: 1px solid rgba(22, 101, 52, 0.1);
+            }}
+            
             .maker-name {{
                 font-size: 0.8rem;
                 color: var(--text-secondary);
@@ -258,7 +264,7 @@ def generate_html(data):
     html += f"""
             <div class="card">
                 <div class="card-header card-collabo">
-                    <span>Collabo Portal (調達中・受注辞退)</span>
+                    <span>Collabo Portal (全ステータス表示)</span>
                     <span class="item-count">{len(collabo_data)}件</span>
                 </div>
                 <div class="table-container">
@@ -267,7 +273,16 @@ def generate_html(data):
         html += "<table><thead><tr><th>品名/メーカー</th><th>状況/納期</th><th>数量</th></tr></thead><tbody>"
         for item in collabo_data:
             remarks_html = f'<div class="remarks">{item.get("remarks", "")}</div>' if item.get("remarks") else ""
-            status_class = "status-danger" if "辞退" in item.get("status", "") else ""
+            
+            # Badge color logic
+            status_text = item.get("status", "")
+            if "辞退" in status_text or "停止" in status_text:
+                status_class = "status-danger"
+            elif "納品済" in status_text or "出荷準備中" in status_text or "本日" in status_text or "明日" in status_text:
+                status_class = "status-success" # We will add this CSS rule later or depend on default neutral
+            else:
+                status_class = "" # Default warning style
+                
             date_html = f'<div style="font-size:0.8rem; margin-top:4px;">受付: {item.get("date")}</div>' if item.get("date") else ""
             
             html += f"""
