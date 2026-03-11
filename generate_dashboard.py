@@ -103,7 +103,7 @@ def generate_html(data):
                 font-size: 0.9rem;
             }}
             
-            .card-collabo {{ background-color: var(--tertiary); }}
+            .card-collabo {{ background-color: #0000cd; }}
             .card-medipal {{ background-color: var(--secondary); }}
             .card-alfweb {{ background-color: var(--primary); }}
             
