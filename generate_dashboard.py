@@ -157,6 +157,7 @@ def generate_html(data):
                 position: sticky;
                 top: 0;
                 z-index: 10;
+                white-space: nowrap;
             }}
             
             td {{
@@ -178,6 +179,7 @@ def generate_html(data):
                 background-color: var(--status-bg-warning);
                 color: var(--status-text-warning);
                 border: 1px solid rgba(180, 83, 9, 0.1);
+                white-space: nowrap;
             }}
             
             .status-danger {{
@@ -276,7 +278,7 @@ def generate_html(data):
                                 <span class="product-code">JAN: {item.get("code", "")}</span>
                                 {remarks_html}
                             </td>
-                            <td>
+                            <td style="white-space: nowrap;">
                                 <span class="status-badge {status_class}">{item.get("status", "")}</span>
                                 {date_html}
                             </td>
@@ -310,9 +312,9 @@ def generate_html(data):
                                 <div class="product-name">{item.get("name", "")}</div>
                                 <span class="product-code">{item.get("code", "")}</span>
                             </td>
-                            <td>
+                            <td style="white-space: nowrap;">
                                 <span class="status-badge status-danger">入荷未定</span>
-                                <div style="font-size:0.8rem; margin-top:4px;">メーカー出荷調整品：入荷未定</div>
+                                <div style="font-size:0.8rem; margin-top:4px; white-space: normal;">メーカー出荷調整品：入荷未定</div>
                             </td>
                         </tr>
         """
@@ -340,7 +342,7 @@ def generate_html(data):
                                 <span class="maker-name">{item.get("maker", "")}</span>
                                 <div class="product-name">{item.get("name", "")}</div>
                             </td>
-                            <td>
+                            <td style="white-space: nowrap;">
                                 <span class="status-badge status-danger">{item.get("status", "入荷未定")}</span>
                                 {date_html}
                             </td>
