@@ -73,8 +73,7 @@ async def fetch_collabo(page):
                     "status": texts[9],
                     "remarks": texts[10] if len(texts) > 10 else ""
                 }
-                if any(x in item["status"] for x in ["調達中", "受注辞退", "保留"]):
-                    data.append(item)
+                data.append(item)
                     
         print(f"Extraction successful: {len(data)} items found.")
     except Exception as e:
