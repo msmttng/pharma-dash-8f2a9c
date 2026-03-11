@@ -320,7 +320,7 @@ def generate_html(data):
                 <div class="table-container">
     """
     if collabo_data:
-        html += "<table><thead><tr><th>品名/メーカー</th><th>状況/納期</th><th>数量</th></tr></thead><tbody>"
+        html += "<table><thead><tr><th>品名/メーカー</th><th>状況/納期</th><th style="min-width:110px;white-space:nowrap;">数量</th></tr></thead><tbody>"
         for item in collabo_data:
             remarks_html = f'<div class="remarks">{item.get("remarks", "")}</div>' if item.get("remarks") else ""
             
@@ -347,7 +347,7 @@ def generate_html(data):
                                 <span class="status-badge {status_class}">{item.get("status", "")}</span>
                                 {date_html}
                             </td>
-                            <td style="white-space: nowrap;">
+                            <td style="white-space: nowrap; min-width: 110px;">
                                 <div>発注: <b>{item.get("order_qty", "-")}</b></div>
                                 <div>納品予定: <b>{item.get("deliv_qty", "-")}</b></div>
                             </td>
