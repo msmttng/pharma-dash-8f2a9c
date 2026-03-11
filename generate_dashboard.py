@@ -347,7 +347,7 @@ def generate_html(data):
                                 <span class="status-badge {status_class}">{item.get("status", "")}</span>
                                 {date_html}
                             </td>
-                            <td>
+                            <td style="white-space: nowrap;">
                                 <div>発注: <b>{item.get("order_qty", "-")}</b></div>
                                 <div>納品予定: <b>{item.get("deliv_qty", "-")}</b></div>
                             </td>
