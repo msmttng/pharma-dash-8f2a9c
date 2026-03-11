@@ -32,17 +32,6 @@ jobs:
         with:
           name: debug-html
           path: debug/
-      - name: Show medipal debug JSON
-        if: always()
-        run: |
-          echo "=== pharma_data.json (medipal first 5 items) ==="
-          python3 -c "
-          import json
-          with open('pharma_data.json') as f:
-              data = json.load(f)
-          for item in data.get('medipal', [])[:5]:
-              print(item)
-          "
       - name: Generate Dashboard HTML
         env:
           PHARMA_CONFIG: ${{ secrets.PHARMA_CONFIG }}
