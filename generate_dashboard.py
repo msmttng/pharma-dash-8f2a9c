@@ -252,12 +252,49 @@ def generate_html(data):
             color: var(--text-secondary);
             font-style: italic;
         }}
+
+        .filter-controls {{
+            max-width: 1400px;
+            margin: 0 auto 1.5rem auto;
+            padding: 0 1rem;
+            display: flex;
+            gap: 1rem;
+        }}
+
+        .filter-btn {{
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            background-color: #fff;
+            color: var(--text);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: 1px solid var(--border);
+        }}
+
+        .filter-btn:hover {{
+            background-color: #f0f0f0;
+        }}
+
+        .filter-btn.active {{
+            background-color: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }}
     </style>
 </head>
 <body>
     <div class="header">
         <h1>💊 医薬品調達情報 統合ダッシュボード</h1>
         <div class="last-updated">最終更新: {updated_at}</div>
+    </div>
+
+    <div class="filter-controls">
+        <button id="btn-all" class="filter-btn active" onclick="filterItems('all')">すべて表示</button>
+        <button id="btn-pending" class="filter-btn" onclick="filterItems('pending')">未納・未定のみ</button>
     </div>
     
     <div class="container">
@@ -299,6 +336,31 @@ def generate_html(data):
         </div>
 
     </div>
+
+    <script>
+        function filterItems(mode) {{
+            const rows = document.querySelectorAll('tbody tr');
+            const btnAll = document.getElementById('btn-all');
+            const btnPending = document.getElementById('btn-pending');
+
+            if (mode === 'all') {{
+                rows.forEach(row => row.style.display = '');
+                btnAll.classList.add('active');
+                btnPending.classList.remove('active');
+            }} else {{
+                rows.forEach(row => {{
+                    const status = row.querySelector('.status-badge').textContent;
+                    if (status.includes('調達中') || status.includes('入荷未定')) {{
+                        row.style.display = '';
+                    }} else {{
+                        row.style.display = 'none';
+                    }}
+                }});
+                btnAll.classList.remove('active');
+                btnPending.classList.add('active');
+            }}
+        }}
+    </script>
 </body>
 </html>"""
     
