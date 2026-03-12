@@ -170,7 +170,7 @@ def generate_html(data):
         .table-container {{
             overflow-x: auto;
             flex-grow: 1;
-            max-height: 600px;
+            max-height: 1200px;
         }}
         
         table {{
@@ -209,6 +209,7 @@ def generate_html(data):
             font-weight: 600;
             background-color: var(--warning);
             color: white;
+            white-space: nowrap;
         }}
         
         .status-danger {{
@@ -312,4 +313,4 @@ if __name__ == "__main__":
             data = json.load(f)
         generate_html(data)
     else:
-        print(f"Error: {INPUT_FILE} not found.")
+        print(
