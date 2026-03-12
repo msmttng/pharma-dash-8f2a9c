@@ -313,4 +313,4 @@ if __name__ == "__main__":
             data = json.load(f)
         generate_html(data)
     else:
-        print(
+        print(f"Error: {INPUT_FILE} not found.")
